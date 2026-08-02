@@ -1,887 +1,573 @@
-"use strict";
-
 /* =========================================================
-   ESCAPE ROOM RAMADAN ADAM - v2 (Adventure UI)
-   script.js
+   MISI ESCAPE ROOM RAMADAN ADAM — script.js
+   Vanilla JS. No external libraries/audio files.
    ========================================================= */
 
-/* ---------------------------------------------------------
-   1. GAME STATE
-   --------------------------------------------------------- */
-let score = 0;
-let keys = 0;
-const maxKeys = 4;
-let lives = 5;
-const maxLives = 5;
-let currentRoom = 1; // 1-5 (5 = Bilik Akhir)
-let isMuted = false;
-let isTransitioning = false;
+(function(){
+"use strict";
 
-/* ---------------------------------------------------------
-   2. AUDIO SYNTHESIZER (Web Audio API, 8-bit, tiada mp3)
-   --------------------------------------------------------- */
-let audioCtx = null;
+/* ============ AUDIO ENGINE (Web Audio API synth) ============ */
+const Audio8bit = (function(){
+  let ctx = null;
+  let masterGain = null;
+  let musicGain = null;
+  let sfxGain = null;
+  let soundOn = true;
+  let musicTimer = null;
+  let musicStep = 0;
 
-function unlockAudio() {
-  if (audioCtx) return;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  audioCtx = new AC();
-}
-
-function playTone(freq, duration, type, volume, delay) {
-  if (!audioCtx || isMuted) return;
-  const t0 = audioCtx.currentTime + (delay || 0);
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type || "square";
-  osc.frequency.setValueAtTime(freq, t0);
-  gain.gain.setValueAtTime(0, t0);
-  gain.gain.linearRampToValueAtTime(volume || 0.12, t0 + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start(t0);
-  osc.stop(t0 + duration + 0.05);
-}
-
-function sfxClick() { playTone(680, 0.06, "square", 0.1); }
-function sfxCorrect() {
-  playTone(523.25, 0.1, "square", 0.12, 0);
-  playTone(783.99, 0.16, "square", 0.13, 0.09);
-}
-function sfxWrong() {
-  playTone(220, 0.15, "sawtooth", 0.12, 0);
-  playTone(160, 0.2, "sawtooth", 0.12, 0.1);
-}
-function sfxUnlock() {
-  playTone(392, 0.1, "square", 0.12, 0);
-  playTone(523.25, 0.1, "square", 0.12, 0.1);
-  playTone(659.25, 0.1, "square", 0.12, 0.2);
-  playTone(880, 0.22, "square", 0.13, 0.3);
-}
-function sfxVictory() {
-  [523.25, 587.33, 659.25, 783.99, 880, 1046.5].forEach((f, i) =>
-    playTone(f, 0.22, "square", 0.13, i * 0.13)
-  );
-}
-
-function toggleMute() {
-  isMuted = !isMuted;
-  document.getElementById("btn-mute").textContent = isMuted ? "🔇" : "🔊";
-}
-
-/* ---------------------------------------------------------
-   3. DOM REFERENCES
-   --------------------------------------------------------- */
-const screenStart = document.getElementById("screen-start");
-const screenGame = document.getElementById("screen-game");
-const screenVictory = document.getElementById("screen-victory");
-
-const roomHeaderIcon = document.getElementById("room-header-icon");
-const roomHeaderTitle = document.getElementById("room-header-title");
-const roomHeaderSub = document.getElementById("room-header-sub");
-
-const stage = document.getElementById("stage");
-const stageScene = document.getElementById("stage-scene");
-const stageObjects = document.getElementById("stage-objects");
-const feedbackLayer = document.getElementById("feedback-float-layer");
-const azanOverlay = document.getElementById("azan-overlay");
-
-const dialogNpc = document.getElementById("dialog-npc");
-const dialogText = document.getElementById("dialog-text");
-
-const hudScore = document.getElementById("hud-score");
-const hudKeys = document.getElementById("hud-keys");
-const hudLives = document.getElementById("hud-lives");
-
-const statKeys = document.getElementById("stat-keys");
-const statScore = document.getElementById("stat-score");
-const statLives = document.getElementById("stat-lives");
-const badgeRow = document.getElementById("badge-row");
-
-/* ---------------------------------------------------------
-   4. SCREEN NAVIGATION
-   --------------------------------------------------------- */
-function showScreen(el) {
-  [screenStart, screenGame, screenVictory].forEach(s => s.classList.add("hidden"));
-  el.classList.remove("hidden");
-}
-
-/* ---------------------------------------------------------
-   5. UTILS
-   --------------------------------------------------------- */
-function shuffleArray(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function safeNumber(n) {
-  const v = Number(n);
-  return isNaN(v) ? 0 : v;
-}
-
-/* ---------------------------------------------------------
-   6. HUD UPDATE (kunci Number, elak NaN)
-   --------------------------------------------------------- */
-function updateHUD() {
-  score = safeNumber(score);
-  if (score < 0) score = 0;
-  keys = safeNumber(keys);
-  if (keys < 0) keys = 0;
-  if (keys > maxKeys) keys = maxKeys;
-  lives = safeNumber(lives);
-  if (lives < 0) lives = 0;
-  if (lives > maxLives) lives = maxLives;
-
-  hudScore.textContent = String(score);
-  hudKeys.textContent = keys + "/" + maxKeys;
-
-  let heartsHtml = "";
-  for (let i = 0; i < maxLives; i++) {
-    heartsHtml += i < lives ? "❤️" : '<span class="heart-lost">🤍</span>';
-  }
-  hudLives.innerHTML = heartsHtml;
-}
-
-function addScore(delta) {
-  score = safeNumber(score) + safeNumber(delta);
-  updateHUD();
-}
-
-function loseLife() {
-  lives = safeNumber(lives) - 1;
-  if (lives < 0) lives = 0;
-  updateHUD();
-}
-
-/* ---------------------------------------------------------
-   7. FEEDBACK: FLOAT TEXT + POPUP + SHAKE
-   --------------------------------------------------------- */
-function showFloatText(text, positive) {
-  const el = document.createElement("div");
-  el.className = "float-text " + (positive ? "positive" : "negative");
-  el.textContent = text;
-  feedbackLayer.appendChild(el);
-  setTimeout(() => el.remove(), 1400);
-}
-
-function showPopup(message, isCorrect) {
-  const el = document.createElement("div");
-  el.className = "popup-msg " + (isCorrect ? "correct" : "wrong");
-  el.textContent = (isCorrect ? "✅ " : "❌ ") + message;
-  feedbackLayer.appendChild(el);
-  setTimeout(() => el.remove(), 1600);
-}
-
-function shakeStage() {
-  stage.classList.remove("screen-shake");
-  void stage.offsetWidth;
-  stage.classList.add("screen-shake");
-}
-
-function spawnConfetti() {
-  const colors = ["#2ecc71", "#f1c40f", "#e74c3c", "#3498db", "#ffffff"];
-  for (let i = 0; i < 24; i++) {
-    const piece = document.createElement("div");
-    piece.className = "confetti-piece";
-    piece.style.left = Math.random() * 100 + "%";
-    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-    piece.style.animationDuration = (0.9 + Math.random() * 0.8) + "s";
-    piece.style.transform = "rotate(" + Math.floor(Math.random() * 360) + "deg)";
-    feedbackLayer.appendChild(piece);
-    setTimeout(() => piece.remove(), 2000);
-  }
-}
-
-/* ---------------------------------------------------------
-   8. DRAG & DROP ENGINE (Pointer Events, universal touch+mouse)
-   --------------------------------------------------------- */
-function findZoneAtPoint(zones, x, y) {
-  for (const z of zones) {
-    const r = z.getBoundingClientRect();
-    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return z;
-  }
-  return null;
-}
-
-function enableDrag(el, getDropZones, onDrop) {
-  el.addEventListener("pointerdown", (e) => {
-    if (isTransitioning) return;
-    if (el.classList.contains("placed")) return;
-    e.preventDefault();
-
-    const pointerId = e.pointerId;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    el.setPointerCapture(pointerId);
-    el.classList.add("dragging");
-    el.style.transition = "none";
-
-    function move(ev) {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      el.style.transform = "translate(" + dx + "px," + dy + "px)";
-      const zones = getDropZones();
-      zones.forEach(z => z.classList.remove("hover-active"));
-      const hz = findZoneAtPoint(zones, ev.clientX, ev.clientY);
-      if (hz) hz.classList.add("hover-active");
+  function ensureCtx(){
+    if(!ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      ctx = new AC();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 0.9;
+      masterGain.connect(ctx.destination);
+      musicGain = ctx.createGain();
+      musicGain.gain.value = 0.12;
+      musicGain.connect(masterGain);
+      sfxGain = ctx.createGain();
+      sfxGain.gain.value = 0.35;
+      sfxGain.connect(masterGain);
     }
+    if(ctx.state === "suspended"){ ctx.resume(); }
+  }
 
-    function up(ev) {
-      el.releasePointerCapture(pointerId);
-      el.removeEventListener("pointermove", move);
-      el.removeEventListener("pointerup", up);
-      el.classList.remove("dragging");
+  function tone(freq, dur, type, gainNode, startAt, vol){
+    if(!soundOn) return;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type || "square";
+    osc.frequency.value = freq;
+    const t0 = ctx.currentTime + (startAt || 0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.5, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g);
+    g.connect(gainNode);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
 
-      const zones = getDropZones();
-      zones.forEach(z => z.classList.remove("hover-active"));
-      const dropZone = findZoneAtPoint(zones, ev.clientX, ev.clientY);
+  function playClick(){
+    ensureCtx();
+    tone(520, 0.07, "square", sfxGain, 0, 0.4);
+  }
 
-      let accepted = false;
-      if (dropZone) accepted = onDrop(el, dropZone);
+  function playUnlock(){
+    ensureCtx();
+    tone(392, 0.09, "square", sfxGain, 0, 0.45);
+    tone(523, 0.09, "square", sfxGain, 0.09, 0.45);
+    tone(659, 0.09, "square", sfxGain, 0.18, 0.45);
+    tone(784, 0.22, "square", sfxGain, 0.27, 0.5);
+  }
 
-      if (!accepted) {
-        el.classList.add("shake-reject");
-        sfxWrong();
-        setTimeout(() => {
-          el.style.transition = "transform 0.3s ease";
-          el.style.transform = "translate(0,0)";
-          el.classList.remove("shake-reject");
-          setTimeout(() => { el.style.transition = ""; }, 320);
-        }, 10);
-      }
-    }
+  function playError(){
+    ensureCtx();
+    tone(180, 0.16, "sawtooth", sfxGain, 0, 0.4);
+    tone(140, 0.22, "sawtooth", sfxGain, 0.1, 0.4);
+  }
 
-    el.addEventListener("pointermove", move);
-    el.addEventListener("pointerup", up);
-  });
-}
+  function playVictory(){
+    ensureCtx();
+    const notes = [523,659,784,1047,784,1047,1319];
+    notes.forEach((n,i)=> tone(n, 0.22, "square", sfxGain, i*0.14, 0.5));
+  }
 
-function placeItem(el) {
-  el.style.transform = "";
-  el.style.transition = "";
-  el.classList.add("placed");
-}
+  const scale = [261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63];
+  function musicLoop(){
+    if(!soundOn){ musicTimer = setTimeout(musicLoop, 500); return; }
+    ensureCtx();
+    const note = scale[musicStep % scale.length];
+    tone(note, 0.5, "triangle", musicGain, 0, 0.22);
+    tone(note/2, 0.9, "sine", musicGain, 0, 0.12);
+    musicStep++;
+    musicTimer = setTimeout(musicLoop, 480);
+  }
 
-/* ---------------------------------------------------------
-   9. ROOM META (header text, lock messages)
-   --------------------------------------------------------- */
-const roomMeta = {
-  1: { icon: "🌙", title: "Bilik Sahur", sub: "Bersedia sebelum fajar", bgClass: "stage-sahur", npc: "👩" },
-  2: { icon: "🏫", title: "Bilik Sekolah", sub: "Kekalkan puasa sepanjang hari", bgClass: "stage-sekolah", npc: "🧕" },
-  3: { icon: "🌇", title: "Bilik Petang", sub: "Bersedia untuk berbuka", bgClass: "stage-petang", npc: "👨" },
-  4: { icon: "🕌", title: "Bilik Berbuka", sub: "Waktu Maghrib tiba", bgClass: "stage-berbuka", npc: "👳" },
-  5: { icon: "🗝️", title: "Bilik Akhir", sub: "Kunci Ramadan", bgClass: "stage-akhir", npc: "🌟" }
+  function startMusic(){
+    ensureCtx();
+    if(musicTimer) return;
+    musicLoop();
+  }
+
+  function setSoundOn(v){
+    soundOn = v;
+  }
+
+  return { ensureCtx, playClick, playUnlock, playError, playVictory, startMusic, setSoundOn,
+           get on(){ return soundOn; } };
+})();
+
+/* ============ GAME STATE ============ */
+const State = {
+  currentRoom: 1,
+  keys: 0,
+  hintsUsed: 0,
+  startTime: null,
+  timerInterval: null,
+  locked: false, // prevents interaction during transitions
+  soundOn: true
 };
 
-function setRoomHeader(roomNum) {
-  const m = roomMeta[roomNum];
-  roomHeaderIcon.textContent = m.icon;
-  roomHeaderTitle.textContent = m.title;
-  roomHeaderSub.textContent = m.sub;
-  stage.className = "stage " + m.bgClass;
-  dialogNpc.textContent = m.npc;
+const ROOM_HINTS = {
+  1: "Fikir apa yang Adam buat dahulu sebelum berpuasa: Bangun ➔ Makan ➔ Niat ➔ (mula puasa hingga) Berbuka.",
+  2: "Buang sahaja perkara yang BATAL atau MAKRUH seperti bergaduh, makan sengaja, dan mengumpat.",
+  3: "Sunnah berbuka: Kurma, Air Jernih, dan Buah-buahan. Elak makanan berlebihan gula/minyak!",
+  4: "Digit 1 = bilangan syarat wajib puasa. Digit 2 = 0 kerana muntah tak sengaja tidak membatalkan. Digit 3 = bilangan rukun puasa."
+};
+
+/* ============ DOM refs ============ */
+const $ = (sel, ctx) => (ctx||document).querySelector(sel);
+const $all = (sel, ctx) => Array.from((ctx||document).querySelectorAll(sel));
+
+const screenSplash = $("#screen-splash");
+const screenGame = $("#screen-game");
+const screenVictory = $("#screen-victory");
+const btnStart = $("#btn-start");
+const btnHint = $("#btn-hint");
+const btnSound = $("#btn-sound");
+const hudRoomNum = $("#hud-room-num");
+const hudKeys = $("#hud-keys");
+const hudTimer = $("#hud-timer");
+const doorTransition = $("#door-transition");
+const hintPopup = $("#hint-popup");
+const hintText = $("#hint-text");
+const hintClose = $("#hint-close");
+
+/* ============ Helpers ============ */
+function showScreen(el){
+  [screenSplash, screenGame, screenVictory].forEach(s => s.classList.remove("active"));
+  el.classList.add("active");
 }
 
-/* ---------------------------------------------------------
-   10. ROOM DISPATCH
-   --------------------------------------------------------- */
-function renderRoom() {
-  setRoomHeader(currentRoom);
-  stageScene.innerHTML = "";
-  azanOverlay.classList.add("hidden");
-
-  if (currentRoom === 1) renderRoom1();
-  else if (currentRoom === 2) renderRoom2();
-  else if (currentRoom === 3) renderRoom3StageA();
-  else if (currentRoom === 4) renderRoom4Intro();
-  else if (currentRoom === 5) renderRoom5();
+function formatTime(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const m = String(Math.floor(totalSec/60)).padStart(2,"0");
+  const s = String(totalSec%60).padStart(2,"0");
+  return m+":"+s;
 }
 
-/* ---------------------------------------------------------
-   11. BILIK SAHUR (Drag & Drop ke Meja)
-   --------------------------------------------------------- */
-const room1Items = [
-  { label: "Roti", emoji: "🍞", correct: true },
-  { label: "Air", emoji: "💧", correct: true },
-  { label: "Kurma", emoji: "🌴", correct: true },
-  { label: "Game", emoji: "🎮", correct: false },
-  { label: "Bola", emoji: "⚽", correct: false },
-  { label: "Headphone", emoji: "🎧", correct: false }
-];
-let room1PlacedCount = 0;
-
-function renderRoom1() {
-  room1PlacedCount = 0;
-  dialogText.textContent = "Seret makanan dan minuman yang sesuai untuk sahur ke Meja Sahur.";
-
-  stageObjects.innerHTML = `
-    <div class="dropzone-row">
-      <div class="dropzone dropzone-single" id="meja-sahur">
-        <span class="dropzone-icon">🍽️</span>
-        <span>MEJA SAHUR</span>
-        <div class="dropzone-filled-items" id="meja-sahur-items"></div>
-      </div>
-    </div>
-    <div class="item-tray" id="room1-tray"></div>
-  `;
-
-  const tray = document.getElementById("room1-tray");
-  shuffleArray(room1Items).forEach(item => {
-    const el = document.createElement("div");
-    el.className = "drag-item";
-    el.innerHTML = item.emoji + '<span class="drag-label">' + item.label + "</span>";
-    tray.appendChild(el);
-
-    enableDrag(el, () => [document.getElementById("meja-sahur")], (dragEl, zone) => {
-      sfxClick();
-      if (item.correct) {
-        placeItem(dragEl);
-        document.getElementById("meja-sahur-items").innerHTML += '<span class="placed-chip">' + item.emoji + "</span>";
-        room1PlacedCount++;
-        addScore(5);
-        showFloatText("+5", true);
-        showPopup("Sesuai untuk sahur!", true);
-        sfxCorrect();
-        if (room1PlacedCount >= 3) {
-          setTimeout(() => unlockDoor(), 500);
-        }
-        return true;
-      } else {
-        showPopup("Itu tidak diperlukan untuk sahur.", false);
-        loseLife();
-        shakeStage();
-        return false;
-      }
-    });
+function updateHud(){
+  hudRoomNum.textContent = State.currentRoom;
+  hudKeys.textContent = "🗝️ " + State.keys + "/4";
+  $all(".progress-node").forEach(node=>{
+    const r = Number(node.dataset.room);
+    node.classList.remove("done","current");
+    if(r < State.currentRoom) node.classList.add("done");
+    else if(r === State.currentRoom) node.classList.add("current");
   });
 }
 
-/* ---------------------------------------------------------
-   12. BILIK SEKOLAH (Drag ke 3 Kategori)
-   --------------------------------------------------------- */
-const room2Items = [
-  { label: "Baca Al-Quran", emoji: "📖", zone: "tidak-batal" },
-  { label: "Ke Masjid", emoji: "🕌", zone: "tidak-batal" },
-  { label: "Berdoa", emoji: "🤲", zone: "tidak-batal" },
-  { label: "Makan Sengaja", emoji: "🍔", zone: "batal" },
-  { label: "Marah-marah", emoji: "😡", zone: "berhati-hati" },
-  { label: "Leka Bermain", emoji: "📱", zone: "berhati-hati" }
-];
-let room2PlacedCount = 0;
-
-function renderRoom2() {
-  room2PlacedCount = 0;
-  dialogText.textContent = "Seret setiap situasi ke kotak yang betul.";
-
-  stageObjects.innerHTML = `
-    <div class="dropzone-row">
-      <div class="dropzone" data-zone="tidak-batal" id="zone-tidak-batal">
-        <span class="dropzone-icon">✅</span><span>Tidak Batal</span>
-        <div class="dropzone-filled-items"></div>
-      </div>
-      <div class="dropzone" data-zone="berhati-hati" id="zone-berhati-hati">
-        <span class="dropzone-icon">⚠️</span><span>Berhati-hati</span>
-        <div class="dropzone-filled-items"></div>
-      </div>
-      <div class="dropzone" data-zone="batal" id="zone-batal">
-        <span class="dropzone-icon">❌</span><span>Batal Puasa</span>
-        <div class="dropzone-filled-items"></div>
-      </div>
-    </div>
-    <div class="item-tray" id="room2-tray"></div>
-  `;
-
-  const tray = document.getElementById("room2-tray");
-  const zones = () => [
-    document.getElementById("zone-tidak-batal"),
-    document.getElementById("zone-berhati-hati"),
-    document.getElementById("zone-batal")
-  ];
-
-  shuffleArray(room2Items).forEach(item => {
-    const el = document.createElement("div");
-    el.className = "drag-item";
-    el.innerHTML = item.emoji + '<span class="drag-label">' + item.label + "</span>";
-    tray.appendChild(el);
-
-    enableDrag(el, zones, (dragEl, zone) => {
-      sfxClick();
-      if (zone.dataset.zone === item.zone) {
-        placeItem(dragEl);
-        zone.querySelector(".dropzone-filled-items").innerHTML += '<span class="placed-chip">' + item.emoji + "</span>";
-        room2PlacedCount++;
-        addScore(5);
-        showFloatText("+5", true);
-        sfxCorrect();
-        if (room2PlacedCount >= room2Items.length) {
-          setTimeout(() => unlockDoor(), 500);
-        }
-        return true;
-      } else {
-        showPopup("Bukan kategori yang betul.", false);
-        loseLife();
-        shakeStage();
-        return false;
-      }
-    });
-  });
+function startGlobalTimer(){
+  State.startTime = Date.now();
+  State.timerInterval = setInterval(()=>{
+    const elapsed = Date.now() - State.startTime;
+    hudTimer.textContent = formatTime(elapsed);
+  }, 250);
 }
 
-/* ---------------------------------------------------------
-   13. BILIK PETANG (Reflex Game + Dapur Drag)
-   --------------------------------------------------------- */
-const reflexGoodPool = [
-  { emoji: "📖", correct: true },
-  { emoji: "🤲", correct: true },
-  { emoji: "🌴", correct: true }
-];
-const reflexBadPool = [
-  { emoji: "🍔", correct: false },
-  { emoji: "🥤", correct: false },
-  { emoji: "🍟", correct: false }
-];
-const reflexTargetHits = 5;
-const reflexDuration = 12;
-
-let reflexHits = 0;
-let reflexTimeLeft = reflexDuration;
-let reflexSpawnInterval = null;
-let reflexTimerInterval = null;
-let reflexActive = false;
-
-function renderRoom3StageA() {
-  reflexHits = 0;
-  reflexTimeLeft = reflexDuration;
-  reflexActive = true;
-
-  dialogText.textContent = "Tekan objek yang BETUL semasa ia bergerak melintasi skrin!";
-
-  stageObjects.innerHTML = `
-    <div class="reflex-timer-wrap">
-      <div class="reflex-timer-track"><div class="reflex-timer-fill" id="reflex-timer-fill"></div></div>
-    </div>
-    <div class="reflex-lane" id="reflex-lane"></div>
-    <div class="reflex-counter" id="reflex-counter">Betul: 0 / ${reflexTargetHits}</div>
-  `;
-
-  clearInterval(reflexSpawnInterval);
-  clearInterval(reflexTimerInterval);
-
-  reflexSpawnInterval = setInterval(spawnReflexObject, 850);
-
-  reflexTimerInterval = setInterval(() => {
-    reflexTimeLeft = safeNumber(reflexTimeLeft) - 1;
-    if (reflexTimeLeft < 0) reflexTimeLeft = 0;
-    const pct = Math.max(0, (reflexTimeLeft / reflexDuration) * 100);
-    const fill = document.getElementById("reflex-timer-fill");
-    if (fill) {
-      fill.style.width = pct + "%";
-      fill.style.background = reflexTimeLeft <= 4
-        ? "linear-gradient(90deg, #e74c3c, #c0392b)"
-        : "linear-gradient(90deg, #2ecc71, #219150)";
-    }
-    if (reflexTimeLeft <= 0 && reflexActive) {
-      reflexActive = false;
-      clearInterval(reflexSpawnInterval);
-      clearInterval(reflexTimerInterval);
-      showPopup("Masa tamat! Cuba lagi.", false);
-      setTimeout(() => renderRoom3StageA(), 900);
-    }
-  }, 1000);
+function stopGlobalTimer(){
+  if(State.timerInterval){ clearInterval(State.timerInterval); State.timerInterval = null; }
 }
 
-function spawnReflexObject() {
-  if (!reflexActive) return;
-  const lane = document.getElementById("reflex-lane");
-  if (!lane) return;
+/* ============ Room transition (door unlock) ============ */
+function unlockRoomAndAdvance(roomNum){
+  if(State.locked) return;
+  State.locked = true;
+  State.keys = Math.min(4, State.keys + 1);
+  updateHud();
+  Audio8bit.playUnlock();
 
-  const useGood = Math.random() < 0.55;
-  const pool = useGood ? reflexGoodPool : reflexBadPool;
-  const item = pool[Math.floor(Math.random() * pool.length)];
+  const currentRoomEl = $(`#room-${roomNum}`);
+  currentRoomEl.classList.add("leaving");
 
-  const el = document.createElement("button");
-  el.className = "reflex-object";
-  el.textContent = item.emoji;
-  const topPos = Math.floor(Math.random() * 200);
-  el.style.top = topPos + "px";
-  const duration = 2.6 + Math.random() * 1.2;
-  el.style.animationDuration = duration + "s";
+  doorTransition.classList.add("active");
+  // reset animation by cloning
+  const leftLeaf = $(".door-left");
+  const rightLeaf = $(".door-right");
+  leftLeaf.style.animation = "none"; rightLeaf.style.animation = "none";
+  void leftLeaf.offsetWidth;
+  leftLeaf.style.animation = "";
+  rightLeaf.style.animation = "";
 
-  el.addEventListener("animationend", () => el.remove());
-  el.addEventListener("click", () => {
-    if (!reflexActive) return;
-    if (item.correct) {
-      sfxCorrect();
-      addScore(5);
-      showFloatText("+5", true);
-      reflexHits++;
-      document.getElementById("reflex-counter").textContent = "Betul: " + reflexHits + " / " + reflexTargetHits;
-      el.remove();
-      if (reflexHits >= reflexTargetHits) {
-        reflexActive = false;
-        clearInterval(reflexSpawnInterval);
-        clearInterval(reflexTimerInterval);
-        showPopup("Hebat! Sedia untuk berbuka.", true);
-        setTimeout(() => renderRoom3StageB(), 700);
-      }
+  setTimeout(()=>{
+    doorTransition.classList.remove("active");
+    currentRoomEl.classList.remove("active","leaving");
+
+    if(roomNum >= 4){
+      goToVictory();
     } else {
-      sfxWrong();
-      loseLife();
-      shakeStage();
-      showFloatText("-1 ❤️", false);
-      el.remove();
+      State.currentRoom = roomNum + 1;
+      updateHud();
+      const nextEl = $(`#room-${State.currentRoom}`);
+      nextEl.classList.add("active");
     }
-  });
-
-  lane.appendChild(el);
+    State.locked = false;
+  }, 950);
 }
 
-const room3DapurItems = [
-  { label: "Kurma", emoji: "🌴", correct: true },
-  { label: "Air", emoji: "💧", correct: true },
-  { label: "Bubur", emoji: "🍲", correct: false },
-  { label: "Coklat", emoji: "🍫", correct: false },
-  { label: "Kentang Goreng", emoji: "🍟", correct: false },
-  { label: "Air Manis", emoji: "🧃", correct: false }
-];
-let room3DapurPlaced = 0;
+/* ============ ROOM 1: SAHUR (sequence) ============ */
+(function setupRoom1(){
+  const correctOrder = ["bangun","makan","niat","berbuka"];
+  let placed = [];
+  const slots = $all(".seq-slot");
+  const cards = $all(".seq-card");
+  const resetBtn = $("#seq-reset");
 
-function renderRoom3StageB() {
-  room3DapurPlaced = 0;
-  dialogText.textContent = "Seret bahan SUNNAH berbuka ke Bakul Berbuka.";
-
-  stageObjects.innerHTML = `
-    <div class="dropzone-row">
-      <div class="dropzone dropzone-single" id="bakul-berbuka">
-        <span class="dropzone-icon">🧺</span>
-        <span>BAKUL BERBUKA</span>
-        <div class="dropzone-filled-items" id="bakul-items"></div>
-      </div>
-    </div>
-    <div class="item-tray" id="room3-tray"></div>
-  `;
-
-  const tray = document.getElementById("room3-tray");
-  shuffleArray(room3DapurItems).forEach(item => {
-    const el = document.createElement("div");
-    el.className = "drag-item";
-    el.innerHTML = item.emoji + '<span class="drag-label">' + item.label + "</span>";
-    tray.appendChild(el);
-
-    enableDrag(el, () => [document.getElementById("bakul-berbuka")], (dragEl, zone) => {
-      sfxClick();
-      if (item.correct) {
-        placeItem(dragEl);
-        document.getElementById("bakul-items").innerHTML += '<span class="placed-chip">' + item.emoji + "</span>";
-        room3DapurPlaced++;
-        addScore(5);
-        showFloatText("+5", true);
-        sfxCorrect();
-        if (room3DapurPlaced >= 2) {
-          setTimeout(() => unlockDoor(), 500);
-        }
-        return true;
+  function renderSlots(){
+    slots.forEach((slot, i)=>{
+      const numSpan = slot.querySelector(".slot-num");
+      if(placed[i]){
+        const card = cards.find(c=>c.dataset.id===placed[i]);
+        slot.innerHTML = card ? card.innerHTML : "";
+        slot.classList.add("filled");
       } else {
-        showPopup("Bukan bahan sunnah berbuka.", false);
-        loseLife();
-        shakeStage();
-        return false;
+        slot.innerHTML = `<span class="slot-num">${i+1}</span>`;
+        slot.classList.remove("filled");
+      }
+    });
+  }
+
+  function resetSeq(){
+    placed = [];
+    cards.forEach(c=> c.classList.remove("used","wrong"));
+    renderSlots();
+  }
+
+  cards.forEach(card=>{
+    card.addEventListener("click", ()=>{
+      if(State.locked || State.currentRoom !== 1) return;
+      Audio8bit.playClick();
+      const id = card.dataset.id;
+      const expectedIndex = placed.length;
+      if(correctOrder[expectedIndex] === id){
+        placed.push(id);
+        card.classList.add("used");
+        renderSlots();
+        if(placed.length === correctOrder.length){
+          setTimeout(()=> unlockRoomAndAdvance(1), 400);
+        }
+      } else {
+        card.classList.add("wrong");
+        Audio8bit.playError();
+        setTimeout(()=>{
+          card.classList.remove("wrong");
+          resetSeq();
+        }, 450);
       }
     });
   });
-}
 
-/* ---------------------------------------------------------
-   14. BILIK BERBUKA (Azan + Timeline Puzzle)
-   --------------------------------------------------------- */
-const room4Sequence = [
-  { label: "Doa", emoji: "🤲" },
-  { label: "Kurma", emoji: "🌴" },
-  { label: "Air", emoji: "💧" },
-  { label: "Makan", emoji: "🍛" },
-  { label: "Solat", emoji: "🕌" }
-];
-let room4FilledCount = 0;
+  resetBtn.addEventListener("click", ()=>{
+    Audio8bit.playClick();
+    resetSeq();
+  });
 
-function renderRoom4Intro() {
-  dialogText.textContent = "Waktu Maghrib telah tiba...";
-  stageObjects.innerHTML = "";
-  azanOverlay.classList.remove("hidden");
-  sfxUnlock();
+  resetSeq();
+})();
 
-  setTimeout(() => {
-    azanOverlay.classList.add("hidden");
-    renderRoom4Puzzle();
-  }, 2200);
-}
+/* ============ ROOM 2: KELAS (filter/eliminate) ============ */
+(function setupRoom2(){
+  const items = $all(".filter-item");
+  const totalToRemove = items.filter(i=> i.dataset.remove === "true").length;
+  let removedCount = 0;
+  const countEl = $("#filter-count");
 
-function renderRoom4Puzzle() {
-  room4FilledCount = 0;
-  dialogText.textContent = "Seret kad adab berbuka mengikut urutan yang betul.";
-
-  let slotsHtml = '<div class="timeline-row" id="timeline-row">';
-  for (let i = 0; i < room4Sequence.length; i++) {
-    slotsHtml += `<div class="timeline-slot" data-slot="${i}"><span class="slot-num">${i + 1}</span></div>`;
-  }
-  slotsHtml += "</div>";
-
-  stageObjects.innerHTML = slotsHtml + '<div class="item-tray" id="room4-tray"></div>';
-
-  const tray = document.getElementById("room4-tray");
-  const getSlots = () => Array.from(document.querySelectorAll(".timeline-slot"));
-
-  shuffleArray(room4Sequence).forEach(card => {
-    const el = document.createElement("div");
-    el.className = "drag-item";
-    el.innerHTML = card.emoji + '<span class="drag-label">' + card.label + "</span>";
-    tray.appendChild(el);
-
-    enableDrag(el, getSlots, (dragEl, slotEl) => {
-      sfxClick();
-      const expectedIndex = room4FilledCount;
-      const expectedCard = room4Sequence[expectedIndex];
-      const slotIndex = Number(slotEl.dataset.slot);
-
-      if (slotIndex === expectedIndex && card.label === expectedCard.label) {
-        placeItem(dragEl);
-        slotEl.classList.add("filled");
-        slotEl.innerHTML = `<span class="slot-num">${slotIndex + 1}</span>${card.emoji}`;
-        room4FilledCount++;
-        addScore(5);
-        showFloatText("+5", true);
-        sfxCorrect();
-        if (room4FilledCount >= room4Sequence.length) {
-          setTimeout(() => unlockDoor(), 500);
+  items.forEach(item=>{
+    item.addEventListener("click", ()=>{
+      if(State.locked || State.currentRoom !== 2) return;
+      if(item.classList.contains("eliminated")) return;
+      const shouldRemove = item.dataset.remove === "true";
+      if(shouldRemove){
+        Audio8bit.playClick();
+        item.classList.add("eliminated");
+        removedCount++;
+        countEl.textContent = removedCount;
+        if(removedCount >= totalToRemove){
+          setTimeout(()=> unlockRoomAndAdvance(2), 400);
         }
-        return true;
       } else {
-        showPopup("Bukan urutan yang betul.", false);
-        loseLife();
-        shakeStage();
-        return false;
+        Audio8bit.playError();
+        item.classList.add("error");
+        item.classList.add("protected");
+        setTimeout(()=> item.classList.remove("error","protected"), 500);
       }
     });
   });
-}
+})();
 
-/* ---------------------------------------------------------
-   15. BILIK AKHIR (Memory Match Nilai Murni)
-   --------------------------------------------------------- */
-const room5Pairs = [
-  { value: "Rajin", desc: "Bangun Sahur" },
-  { value: "Sabar", desc: "Menahan Marah" },
-  { value: "Tanggungjawab", desc: "Membantu Ibu" },
-  { value: "Bersyukur", desc: "Berbuka Puasa" }
-];
-let room5Matched = 0;
-let room5SelectedLeft = null;
-let room5SelectedRight = null;
+/* ============ ROOM 3: DAPUR (hidden object + timer) ============ */
+(function setupRoom3(){
+  const items = $all(".hunt-item");
+  const totalCorrect = items.filter(i=> i.dataset.correct === "true").length;
+  const countEl = $("#hunt-count");
+  const fillEl = $("#mini-timer-fill");
+  const textEl = $("#mini-timer-text");
+  const TOTAL_TIME = 25.0;
+  let timeLeft = TOTAL_TIME;
+  let foundCount = 0;
+  let intervalId = null;
+  let started = false;
 
-function renderRoom5() {
-  room5Matched = 0;
-  room5SelectedLeft = null;
-  room5SelectedRight = null;
-  dialogText.textContent = "Padankan nilai murni dengan amalannya untuk membuka Kunci Ramadan.";
-
-  const leftItems = shuffleArray(room5Pairs.map((p, i) => ({ text: p.value, idx: i })));
-  const rightItems = shuffleArray(room5Pairs.map((p, i) => ({ text: p.desc, idx: i })));
-
-  stageObjects.innerHTML = `
-    <div class="match-columns">
-      <div class="match-col" id="match-left"></div>
-      <div class="match-col" id="match-right"></div>
-    </div>
-  `;
-
-  const leftCol = document.getElementById("match-left");
-  const rightCol = document.getElementById("match-right");
-
-  leftItems.forEach(item => {
-    const el = document.createElement("button");
-    el.className = "match-card";
-    el.textContent = item.text;
-    el.dataset.idx = String(item.idx);
-    el.addEventListener("click", () => handleMatchClick(el, "left", item.idx));
-    leftCol.appendChild(el);
-  });
-
-  rightItems.forEach(item => {
-    const el = document.createElement("button");
-    el.className = "match-card";
-    el.textContent = item.text;
-    el.dataset.idx = String(item.idx);
-    el.addEventListener("click", () => handleMatchClick(el, "right", item.idx));
-    rightCol.appendChild(el);
-  });
-}
-
-function handleMatchClick(el, side, idx) {
-  if (isTransitioning) return;
-  if (el.classList.contains("matched")) return;
-  sfxClick();
-
-  if (side === "left") {
-    if (room5SelectedLeft) room5SelectedLeft.el.classList.remove("selected");
-    room5SelectedLeft = { el, idx };
-    el.classList.add("selected");
-  } else {
-    if (room5SelectedRight) room5SelectedRight.el.classList.remove("selected");
-    room5SelectedRight = { el, idx };
-    el.classList.add("selected");
+  function resetRoom3(){
+    timeLeft = TOTAL_TIME;
+    foundCount = 0;
+    started = false;
+    countEl.textContent = "0";
+    items.forEach(i=> i.classList.remove("found","error"));
+    updateTimerUI();
   }
 
-  if (room5SelectedLeft && room5SelectedRight) {
-    const l = room5SelectedLeft;
-    const r = room5SelectedRight;
+  function updateTimerUI(){
+    textEl.textContent = timeLeft.toFixed(1) + "s";
+    const pct = Math.max(0, (timeLeft/TOTAL_TIME)*100);
+    fillEl.style.width = pct + "%";
+    if(pct < 30) fillEl.style.background = "linear-gradient(90deg,#e74c3c,#f1c40f)";
+    else fillEl.style.background = "linear-gradient(90deg, #2ecc71, #f1c40f)";
+  }
 
-    if (l.idx === r.idx) {
-      l.el.classList.remove("selected");
-      r.el.classList.remove("selected");
-      l.el.classList.add("matched");
-      r.el.classList.add("matched");
-      addScore(10);
-      showFloatText("+10", true);
-      sfxCorrect();
-      room5Matched++;
-      room5SelectedLeft = null;
-      room5SelectedRight = null;
-
-      if (room5Matched >= room5Pairs.length) {
-        setTimeout(() => finishGame(), 600);
+  function startTimer(){
+    if(started) return;
+    started = true;
+    intervalId = setInterval(()=>{
+      timeLeft -= 0.1;
+      if(timeLeft <= 0){
+        timeLeft = 0;
+        updateTimerUI();
+        clearInterval(intervalId);
+        started = false;
+        showHint("⏰ Masa tamat! Cuba lagi cari bahan Sunnah Berbuka.");
+        setTimeout(resetRoom3, 300);
+        return;
       }
-    } else {
-      sfxWrong();
-      loseLife();
-      shakeStage();
-      l.el.classList.add("shake-reject");
-      r.el.classList.add("shake-reject");
-      showPopup("Padanan tidak tepat.", false);
-      setTimeout(() => {
-        l.el.classList.remove("selected", "shake-reject");
-        r.el.classList.remove("selected", "shake-reject");
-        room5SelectedLeft = null;
-        room5SelectedRight = null;
-      }, 500);
-    }
-  }
-}
-
-/* ---------------------------------------------------------
-   16. UNLOCK DOOR / ROOM TRANSITION
-   --------------------------------------------------------- */
-function unlockDoor() {
-  if (isTransitioning) return;
-  isTransitioning = true;
-  sfxUnlock();
-  spawnConfetti();
-
-  if (currentRoom <= 4) {
-    keys++;
-    updateHUD();
+      updateTimerUI();
+    }, 100);
   }
 
-  setTimeout(() => {
-    if (currentRoom < 5) {
-      currentRoom++;
-      renderRoom();
-    }
-    isTransitioning = false;
-  }, 700);
+  items.forEach(item=>{
+    item.addEventListener("click", ()=>{
+      if(State.locked || State.currentRoom !== 3) return;
+      if(item.classList.contains("found")) return;
+      startTimer();
+      const isCorrect = item.dataset.correct === "true";
+      if(isCorrect){
+        Audio8bit.playClick();
+        item.classList.add("found");
+        foundCount++;
+        countEl.textContent = foundCount;
+        if(foundCount >= totalCorrect){
+          clearInterval(intervalId);
+          started = false;
+          setTimeout(()=> unlockRoomAndAdvance(3), 400);
+        }
+      } else {
+        Audio8bit.playError();
+        item.classList.add("error");
+        setTimeout(()=> item.classList.remove("error"), 400);
+        timeLeft = Math.max(0, timeLeft - 5);
+        updateTimerUI();
+      }
+    });
+  });
+
+  resetRoom3();
+  // expose reset for room re-entry if user goes back (not typical but safe)
+  window.__resetRoom3 = resetRoom3;
+})();
+
+/* ============ ROOM 4: BERBUKA (quiz -> combination padlock) ============ */
+(function setupRoom4(){
+  const quizCards = $all(".quiz-card");
+  const answers = { "1": "3", "2": "0", "3": "2" };
+  let solvedCount = 0;
+  const correctCode = "302";
+  let inputDigits = [];
+  const numpad = $("#numpad");
+  const numButtons = $all("button", numpad);
+  const safeDigits = $all(".safe-digit");
+
+  function setNumpadEnabled(enabled){
+    numButtons.forEach(b=> b.disabled = !enabled);
+  }
+  setNumpadEnabled(false);
+
+  quizCards.forEach(card=>{
+    const qNum = card.dataset.q;
+    const opts = $all("button", card.querySelector(".quiz-opts"));
+    const feedback = card.querySelector(".quiz-feedback");
+    opts.forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        if(State.locked || State.currentRoom !== 4 || card.classList.contains("solved")) return;
+        const val = btn.dataset.val;
+        if(val === answers[qNum]){
+          Audio8bit.playClick();
+          btn.classList.add("correct");
+          opts.forEach(o=> o.disabled = true);
+          card.classList.add("solved");
+          feedback.textContent = "✅ Betul! Digit ini disahkan.";
+          solvedCount++;
+          if(solvedCount === quizCards.length){
+            setNumpadEnabled(true);
+            feedback.parentElement && null;
+          }
+        } else {
+          Audio8bit.playError();
+          btn.classList.add("wrong");
+          feedback.textContent = "❌ Cuba lagi!";
+          setTimeout(()=> btn.classList.remove("wrong"), 500);
+        }
+      });
+    });
+  });
+
+  function renderSafe(){
+    safeDigits.forEach((d,i)=>{
+      d.textContent = inputDigits[i] !== undefined ? inputDigits[i] : "_";
+    });
+  }
+
+  function shakeSafe(){
+    const box = $(".safe-display");
+    box.style.animation = "none";
+    void box.offsetWidth;
+    box.style.animation = "shake 0.4s";
+  }
+
+  numButtons.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(State.locked || State.currentRoom !== 4) return;
+      const num = btn.dataset.num;
+      if(num === "clr"){
+        Audio8bit.playClick();
+        inputDigits = [];
+        renderSafe();
+        return;
+      }
+      if(num === "ok"){
+        if(inputDigits.length < 3){
+          Audio8bit.playError();
+          shakeSafe();
+          return;
+        }
+        const code = inputDigits.join("");
+        if(code === correctCode){
+          Audio8bit.playUnlock();
+          setTimeout(()=> unlockRoomAndAdvance(4), 300);
+        } else {
+          Audio8bit.playError();
+          shakeSafe();
+          setTimeout(()=>{ inputDigits = []; renderSafe(); }, 500);
+        }
+        return;
+      }
+      // digit
+      if(inputDigits.length < 3){
+        Audio8bit.playClick();
+        inputDigits.push(num);
+        renderSafe();
+      }
+    });
+  });
+
+  renderSafe();
+})();
+
+/* ============ HINT SYSTEM ============ */
+function showHint(customText){
+  hintText.textContent = customText || ROOM_HINTS[State.currentRoom] || "Teruskan mencuba!";
+  hintPopup.classList.add("active");
 }
+btnHint.addEventListener("click", ()=>{
+  Audio8bit.ensureCtx();
+  Audio8bit.playClick();
+  State.hintsUsed++;
+  showHint();
+});
+hintClose.addEventListener("click", ()=>{
+  Audio8bit.playClick();
+  hintPopup.classList.remove("active");
+});
 
-/* ---------------------------------------------------------
-   17. START / RESET GAME
-   --------------------------------------------------------- */
-function startGame() {
-  score = 0;
-  keys = 0;
-  lives = maxLives;
-  currentRoom = 1;
-  isTransitioning = false;
+/* ============ SOUND TOGGLE ============ */
+btnSound.addEventListener("click", ()=>{
+  Audio8bit.ensureCtx();
+  State.soundOn = !State.soundOn;
+  Audio8bit.setSoundOn(State.soundOn);
+  btnSound.textContent = State.soundOn ? "🔊" : "🔇";
+  btnSound.classList.toggle("muted", !State.soundOn);
+});
 
-  updateHUD();
+/* ============ START GAME ============ */
+btnStart.addEventListener("click", ()=>{
+  Audio8bit.ensureCtx();
+  Audio8bit.playClick();
+  Audio8bit.startMusic();
   showScreen(screenGame);
-  renderRoom();
+  $("#room-1").classList.add("active");
+  State.currentRoom = 1;
+  State.keys = 0;
+  State.hintsUsed = 0;
+  updateHud();
+  startGlobalTimer();
+});
+
+/* ============ VICTORY ============ */
+function spawnConfetti(){
+  const layer = $("#confetti-layer");
+  layer.innerHTML = "";
+  const emojis = ["🎉","✨","🌙","⭐","🏮","🕌","💛","💚"];
+  for(let i=0;i<40;i++){
+    const span = document.createElement("span");
+    span.className = "confetti-piece";
+    span.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    span.style.left = Math.random()*100 + "%";
+    span.style.animationDuration = (2.5 + Math.random()*2.5) + "s";
+    span.style.animationDelay = (Math.random()*1.5) + "s";
+    span.style.fontSize = (14 + Math.random()*16) + "px";
+    layer.appendChild(span);
+  }
 }
 
-/* ---------------------------------------------------------
-   18. FINISH GAME / VICTORY
-   --------------------------------------------------------- */
-function finishGame() {
-  sfxVictory();
-  spawnConfetti();
-  updateHUD();
+function computeScore(elapsedMs){
+  const elapsedSec = elapsedMs/1000;
+  let score = 1000;
+  score -= State.hintsUsed * 40;
+  score -= Math.floor(elapsedSec) * 1.2;
+  score = Math.max(50, Math.round(score));
+  return score;
+}
 
-  statKeys.textContent = keys + "/" + maxKeys;
-  statScore.textContent = String(score);
-  statLives.textContent = lives + "/" + maxLives;
+function goToVictory(){
+  stopGlobalTimer();
+  const elapsed = Date.now() - (State.startTime || Date.now());
+  const score = computeScore(elapsed);
 
-  const badges = ["🏅"];
-  if (lives === maxLives) badges.push("💯");
-  if (score >= 100) badges.push("⭐");
-  if (keys === maxKeys) badges.push("🗝️");
+  $("#stat-keys").textContent = State.keys + "/4";
+  $("#stat-time").textContent = formatTime(elapsed);
+  $("#stat-hints").textContent = String(State.hintsUsed);
+  $("#stat-score").textContent = String(score);
 
-  badgeRow.innerHTML = "";
-  badges.forEach((b, i) => {
-    const chip = document.createElement("div");
-    chip.className = "badge-chip";
-    chip.textContent = b;
-    chip.style.animationDelay = (i * 0.2) + "s";
-    badgeRow.appendChild(chip);
-  });
+  const badgeEl = $("#rank-badge");
+  let badge = "🏆 ESCAPE MASTER";
+  if(State.hintsUsed >= 3) badge = "🥉 PENYELAMAT RAMADAN";
+  else if(State.hintsUsed >= 1) badge = "🥈 PEJUANG PUASA";
+  else badge = "🥇 ESCAPE MASTER SEJATI";
+  badgeEl.textContent = badge;
 
+  Audio8bit.playVictory();
   showScreen(screenVictory);
+  spawnConfetti();
 }
 
-/* ---------------------------------------------------------
-   19. MODALS
-   --------------------------------------------------------- */
-function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
-function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
-
-/* ---------------------------------------------------------
-   20. EVENT LISTENERS
-   --------------------------------------------------------- */
-document.getElementById("btn-start").addEventListener("click", () => {
-  unlockAudio();
-  sfxClick();
-  startGame();
+/* ============ RESTART ============ */
+$("#btn-restart").addEventListener("click", ()=>{
+  Audio8bit.playClick();
+  // reset room 1
+  document.location.reload();
 });
 
-document.getElementById("btn-howto").addEventListener("click", () => {
-  unlockAudio();
-  sfxClick();
-  openModal("modal-howto");
-});
+/* ============ INIT ============ */
+updateHud();
 
-document.getElementById("btn-replay").addEventListener("click", () => {
-  sfxClick();
-  startGame();
-});
-
-document.getElementById("btn-mute").addEventListener("click", () => {
-  toggleMute();
-});
-
-document.querySelectorAll("[data-close-modal]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    sfxClick();
-    closeModal(btn.dataset.closeModal);
-  });
-});
-
-document.querySelectorAll(".modal-overlay").forEach(overlay => {
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) overlay.classList.add("hidden");
-  });
-});
-
-/* ---------------------------------------------------------
-   21. INITIAL STATE
-   --------------------------------------------------------- */
-showScreen(screenStart);
+})();

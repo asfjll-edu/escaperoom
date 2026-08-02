@@ -19,6 +19,32 @@
   <section id="screen-splash" class="screen active">
     <div class="stars"></div>
     <div class="moon">🌙</div>
+    <div class="adam-figure adam-splash" aria-label="Watak Adam melambai">
+      <svg viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="70" cy="164" rx="46" ry="7" fill="#000" opacity="0.25"/>
+        <path d="M35 165 L35 120 Q35 100 70 98 Q105 100 105 120 L105 165 Z" fill="#2ecc71"/>
+        <path d="M60 100 L70 114 L80 100" fill="none" stroke="#1f8b4f" stroke-width="3"/>
+        <rect x="30" y="140" width="80" height="22" rx="6" fill="#f1c40f" stroke="#b9920b" stroke-width="2"/>
+        <ellipse cx="30" cy="128" rx="10" ry="22" fill="#2ecc71" transform="rotate(-8 30 128)"/>
+        <circle cx="27" cy="150" r="8" fill="#e3a76f"/>
+        <g class="arm-wave">
+          <ellipse cx="108" cy="95" rx="9" ry="24" fill="#2ecc71" transform="rotate(55 108 95)"/>
+          <circle cx="123" cy="70" r="8" fill="#e3a76f"/>
+        </g>
+        <circle cx="35" cy="64" r="7" fill="#e3a76f"/>
+        <circle cx="105" cy="64" r="7" fill="#e3a76f"/>
+        <circle cx="70" cy="62" r="36" fill="#e3a76f"/>
+        <path d="M45 25 Q70 3 95 25 L95 40 L45 40 Z" fill="#1c1c1c"/>
+        <rect x="42" y="36" width="56" height="8" rx="3" fill="#111"/>
+        <ellipse cx="60" cy="60" rx="6.5" ry="7.5" fill="#fff"/>
+        <ellipse cx="80" cy="60" rx="6.5" ry="7.5" fill="#fff"/>
+        <circle cx="61" cy="61" r="3.4" fill="#1c1c1c"/>
+        <circle cx="81" cy="61" r="3.4" fill="#1c1c1c"/>
+        <circle cx="50" cy="72" r="5" fill="#ff9e9e" opacity="0.5"/>
+        <circle cx="90" cy="72" r="5" fill="#ff9e9e" opacity="0.5"/>
+        <path d="M58 76 Q70 86 82 76" stroke="#7a3b2e" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
     <h1 class="game-title">MISI ESCAPE ROOM<br><span>RAMADAN ADAM</span></h1>
     <p class="game-sub">Bantu Adam melalui 4 bilik &amp; selesaikan misteri Ramadan sebelum Maghrib tiba!</p>
     <div class="lantern-row">🏮 🕌 🏮</div>
@@ -63,11 +89,34 @@
       <!-- ROOM 1: SAHUR -->
       <div class="room" id="room-1" data-room="1">
         <div class="room-scene scene-sahur">
-          <div class="scene-bg">🌌</div>
           <div class="clock-widget">🕓 4:30</div>
-          <div class="room-heading">
-            <h2>🛏️ BILIK SAHUR</h2>
-            <p class="room-lock-msg">"Kunci pintu terikat dengan urutan sahur yang betul!"</p>
+          <div class="room-heading-row">
+            <div class="adam-figure" aria-label="Watak Adam mengantuk">
+              <svg viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="70" cy="164" rx="46" ry="7" fill="#000" opacity="0.25"/>
+                <path d="M35 165 L35 120 Q35 100 70 98 Q105 100 105 120 L105 165 Z" fill="#2ecc71"/>
+                <path d="M60 100 L70 114 L80 100" fill="none" stroke="#1f8b4f" stroke-width="3"/>
+                <rect x="30" y="140" width="80" height="22" rx="6" fill="#f1c40f" stroke="#b9920b" stroke-width="2"/>
+                <ellipse cx="30" cy="128" rx="10" ry="22" fill="#2ecc71" transform="rotate(-8 30 128)"/>
+                <ellipse cx="110" cy="128" rx="10" ry="22" fill="#2ecc71" transform="rotate(8 110 128)"/>
+                <circle cx="27" cy="150" r="8" fill="#e3a76f"/>
+                <circle cx="113" cy="150" r="8" fill="#e3a76f"/>
+                <circle cx="35" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="105" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="70" cy="62" r="36" fill="#e3a76f"/>
+                <path d="M45 25 Q70 3 95 25 L95 40 L45 40 Z" fill="#1c1c1c"/>
+                <rect x="42" y="36" width="56" height="8" rx="3" fill="#111"/>
+                <path d="M55 60 Q60 65 65 60" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M75 60 Q80 65 85 60" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <ellipse cx="70" cy="76" rx="5" ry="7" fill="#7a3b2e"/>
+                <text x="92" y="28" font-family="'Press Start 2P'" font-size="11" fill="#8ecbff">Z</text>
+                <text x="103" y="16" font-family="'Press Start 2P'" font-size="8" fill="#8ecbff">Z</text>
+              </svg>
+            </div>
+            <div class="room-heading">
+              <h2>🛏️ BILIK SAHUR</h2>
+              <p class="room-lock-msg">"Kunci pintu terikat dengan urutan sahur yang betul!"</p>
+            </div>
           </div>
           <p class="room-instruction">Susun kad mengikut urutan yang betul sebelum fajar menjelang. Tekan kad ikut turutan!</p>
 
@@ -91,9 +140,35 @@
       <!-- ROOM 2: KELAS SEKOLAH -->
       <div class="room" id="room-2" data-room="2">
         <div class="room-scene scene-kelas">
-          <div class="room-heading">
-            <h2>🏫 KELAS SEKOLAH</h2>
-            <p class="room-lock-msg">"Pengawal Pintu hanya bagi lalu jika kelas bebas daripada perkara makruh/batal!"</p>
+          <div class="room-heading-row">
+            <div class="adam-figure" aria-label="Watak Adam fokus dan yakin">
+              <svg viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="70" cy="164" rx="46" ry="7" fill="#000" opacity="0.25"/>
+                <path d="M35 165 L35 120 Q35 100 70 98 Q105 100 105 120 L105 165 Z" fill="#2ecc71"/>
+                <path d="M60 100 L70 114 L80 100" fill="none" stroke="#1f8b4f" stroke-width="3"/>
+                <rect x="30" y="140" width="80" height="22" rx="6" fill="#f1c40f" stroke="#b9920b" stroke-width="2"/>
+                <ellipse cx="30" cy="128" rx="10" ry="22" fill="#2ecc71" transform="rotate(-8 30 128)"/>
+                <circle cx="27" cy="150" r="8" fill="#e3a76f"/>
+                <ellipse cx="108" cy="95" rx="9" ry="24" fill="#2ecc71" transform="rotate(52 108 95)"/>
+                <circle cx="122" cy="70" r="8" fill="#e3a76f"/>
+                <circle cx="35" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="105" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="70" cy="62" r="36" fill="#e3a76f"/>
+                <path d="M45 25 Q70 3 95 25 L95 40 L45 40 Z" fill="#1c1c1c"/>
+                <rect x="42" y="36" width="56" height="8" rx="3" fill="#111"/>
+                <path d="M53 51 L67 54" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>
+                <path d="M87 51 L73 54" stroke="#3a2a1a" stroke-width="3" stroke-linecap="round"/>
+                <ellipse cx="60" cy="61" rx="6.5" ry="7.5" fill="#fff"/>
+                <ellipse cx="80" cy="61" rx="6.5" ry="7.5" fill="#fff"/>
+                <circle cx="61" cy="62" r="3.4" fill="#1c1c1c"/>
+                <circle cx="81" cy="62" r="3.4" fill="#1c1c1c"/>
+                <path d="M62 78 Q70 81 78 78" stroke="#7a3b2e" stroke-width="3" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="room-heading">
+              <h2>🏫 KELAS SEKOLAH</h2>
+              <p class="room-lock-msg">"Pengawal Pintu hanya bagi lalu jika kelas bebas daripada perkara makruh/batal!"</p>
+            </div>
           </div>
           <p class="room-instruction">Klik &amp; buang situasi yang <b>BATAL / MAKRUH</b> sahaja. Kekalkan yang SAH &amp; SUNAT!</p>
 
@@ -112,9 +187,34 @@
       <!-- ROOM 3: DAPUR PETANG -->
       <div class="room" id="room-3" data-room="3">
         <div class="room-scene scene-dapur">
-          <div class="room-heading">
-            <h2>🌇 DAPUR PETANG</h2>
-            <p class="room-lock-msg">"Cari 3 Bahan Sunnah Berbuka yang tersembunyi dalam masa 25 saat!"</p>
+          <div class="room-heading-row">
+            <div class="adam-figure" aria-label="Watak Adam mencari bahan">
+              <svg viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="70" cy="164" rx="46" ry="7" fill="#000" opacity="0.25"/>
+                <path d="M35 165 L35 120 Q35 100 70 98 Q105 100 105 120 L105 165 Z" fill="#2ecc71"/>
+                <path d="M60 100 L70 114 L80 100" fill="none" stroke="#1f8b4f" stroke-width="3"/>
+                <rect x="30" y="140" width="80" height="22" rx="6" fill="#f1c40f" stroke="#b9920b" stroke-width="2"/>
+                <ellipse cx="30" cy="128" rx="10" ry="22" fill="#2ecc71" transform="rotate(-8 30 128)"/>
+                <circle cx="27" cy="150" r="8" fill="#e3a76f"/>
+                <ellipse cx="97" cy="88" rx="9" ry="22" fill="#2ecc71" transform="rotate(72 97 88)"/>
+                <circle cx="87" cy="64" r="8" fill="#e3a76f"/>
+                <circle cx="35" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="105" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="70" cy="62" r="36" fill="#e3a76f"/>
+                <path d="M45 25 Q70 3 95 25 L95 40 L45 40 Z" fill="#1c1c1c"/>
+                <rect x="42" y="36" width="56" height="8" rx="3" fill="#111"/>
+                <ellipse cx="58" cy="60" rx="7" ry="8" fill="#fff"/>
+                <ellipse cx="80" cy="60" rx="7" ry="8" fill="#fff"/>
+                <circle cx="58" cy="61" r="3.6" fill="#1c1c1c"/>
+                <circle cx="80" cy="61" r="3.6" fill="#1c1c1c"/>
+                <ellipse cx="70" cy="78" rx="6" ry="5" fill="#7a3b2e"/>
+                <text x="6" y="46" font-size="20">🔍</text>
+              </svg>
+            </div>
+            <div class="room-heading">
+              <h2>🌇 DAPUR PETANG</h2>
+              <p class="room-lock-msg">"Cari 3 Bahan Sunnah Berbuka yang tersembunyi dalam masa 25 saat!"</p>
+            </div>
           </div>
           <p class="room-instruction">Klik bahan yang <b>SUNNAH untuk berbuka</b>. Silap klik, masa berkurang 5 saat!</p>
 
@@ -138,9 +238,35 @@
       <!-- ROOM 4: RUANG BERBUKA -->
       <div class="room" id="room-4" data-room="4">
         <div class="room-scene scene-berbuka">
-          <div class="room-heading">
-            <h2>🕌 RUANG BERBUKA</h2>
-            <p class="room-lock-msg">"Masukkan 3-Digit Kod Rahsia pada Peti Besi untuk berbuka puasa!"</p>
+          <div class="room-heading-row">
+            <div class="adam-figure" aria-label="Watak Adam gembira menyambut berbuka">
+              <svg viewBox="0 0 140 170" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="70" cy="164" rx="46" ry="7" fill="#000" opacity="0.25"/>
+                <path d="M35 165 L35 120 Q35 100 70 98 Q105 100 105 120 L105 165 Z" fill="#2ecc71"/>
+                <path d="M60 100 L70 114 L80 100" fill="none" stroke="#1f8b4f" stroke-width="3"/>
+                <rect x="30" y="140" width="80" height="22" rx="6" fill="#f1c40f" stroke="#b9920b" stroke-width="2"/>
+                <ellipse cx="28" cy="95" rx="9" ry="24" fill="#2ecc71" transform="rotate(-52 28 95)"/>
+                <circle cx="13" cy="70" r="8" fill="#e3a76f"/>
+                <ellipse cx="112" cy="95" rx="9" ry="24" fill="#2ecc71" transform="rotate(52 112 95)"/>
+                <circle cx="127" cy="70" r="8" fill="#e3a76f"/>
+                <circle cx="35" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="105" cy="64" r="7" fill="#e3a76f"/>
+                <circle cx="70" cy="62" r="36" fill="#e3a76f"/>
+                <path d="M45 25 Q70 3 95 25 L95 40 L45 40 Z" fill="#1c1c1c"/>
+                <rect x="42" y="36" width="56" height="8" rx="3" fill="#111"/>
+                <path d="M55 62 Q60 55 65 62" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <path d="M75 62 Q80 55 85 62" stroke="#3a2a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <circle cx="48" cy="72" r="5" fill="#ff9e9e" opacity="0.55"/>
+                <circle cx="92" cy="72" r="5" fill="#ff9e9e" opacity="0.55"/>
+                <path d="M55 75 Q70 92 85 75" stroke="#7a3b2e" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <text x="14" y="22" font-size="16">✨</text>
+                <text x="104" y="18" font-size="16">✨</text>
+              </svg>
+            </div>
+            <div class="room-heading">
+              <h2>🕌 RUANG BERBUKA</h2>
+              <p class="room-lock-msg">"Masukkan 3-Digit Kod Rahsia pada Peti Besi untuk berbuka puasa!"</p>
+            </div>
           </div>
 
           <div class="quiz-cards" id="quiz-cards">

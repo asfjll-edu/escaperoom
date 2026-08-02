@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Misi Escape Room Ramadan Adam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="arcade-cabinet">
+  <div class="crt-scanlines"></div>
+  <div class="crt-vignette"></div>
+
+  <!-- ===================== SCREEN: START ===================== -->
+  <section id="screen-start" class="game-screen">
+    <div class="start-content">
+      <div class="pixel-icon" aria-hidden="true">🔐</div>
+      <h1 class="game-title">MISI ESCAPE<br>ROOM RAMADAN<br>ADAM</h1>
+      <p class="game-blink">TEKAN UNTUK MULA</p>
+      <p class="start-desc">Bantu Adam menyelesaikan 4 bilik teka-teki puasa Ramadan sebelum masa tamat!</p>
+      <div class="start-buttons">
+        <button id="btn-start" class="retro-btn btn-primary">▶ MULA MISI</button>
+        <button id="btn-howto" class="retro-btn">📖 CARA MAIN</button>
+      </div>
+      <p class="start-footer">Fiqh Puasa • Pendidikan Islam Tahun 4</p>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN: GAME ===================== -->
+  <section id="screen-game" class="game-screen hidden">
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-item">
+        <span class="hud-label">BILIK</span>
+        <span id="hud-room" class="hud-value">1 / 4</span>
+      </div>
+      <div class="hud-item hud-timer-item">
+        <span class="hud-label">MASA</span>
+        <span id="hud-timer" class="hud-value hud-timer">00:00</span>
+      </div>
+      <div class="hud-item hud-buttons">
+        <button id="btn-hint" class="icon-btn" aria-label="Hint">💡</button>
+        <button id="btn-mute" class="icon-btn" aria-label="Mute">🔊</button>
+      </div>
+    </div>
+
+    <!-- Room progress dots -->
+    <div class="room-dots">
+      <span class="room-dot" data-room="1">🚪1</span>
+      <span class="room-dot" data-room="2">🚪2</span>
+      <span class="room-dot" data-room="3">🚪3</span>
+      <span class="room-dot" data-room="4">🚪4</span>
+    </div>
+
+    <!-- Door lock message banner -->
+    <div class="lock-banner">
+      <span id="lock-message">Kunci pintu terikat dengan urutan sahur yang betul!</span>
+    </div>
+
+    <!-- Room stage area (rooms rendered dynamically) -->
+    <div id="room-stage" class="room-stage bg-sahur">
+      <!-- Room content injected by JS -->
+    </div>
+
+    <!-- Hint box -->
+    <div id="hint-box" class="hint-box hidden"></div>
+
+    <!-- Feedback toast -->
+    <div id="toast" class="toast hidden"></div>
+  </section>
+
+  <!-- ===================== SCREEN: VICTORY ===================== -->
+  <section id="screen-victory" class="game-screen hidden">
+    <div class="victory-content">
+      <div class="victory-icon">🏆</div>
+      <h2 class="victory-title">ADAM BERJAYA<br>BERBUKA PUASA!</h2>
+      <p class="victory-sub">Escape Room Selesai!</p>
+
+      <div class="victory-stats">
+        <div class="victory-stat-row">
+          <span>MASA DIAMBIL</span>
+          <span id="victory-time">00:00</span>
+        </div>
+        <div class="victory-stat-row">
+          <span>HINT DIGUNAKAN</span>
+          <span id="victory-hints">0</span>
+        </div>
+        <div class="victory-stat-row victory-stat-rank">
+          <span>PENILAIAN</span>
+          <span id="victory-rank">ESCAPE MASTER</span>
+        </div>
+      </div>
+
+      <div class="victory-buttons">
+        <button id="btn-replay" class="retro-btn btn-primary">🔄 MAIN SEMULA</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<div id="modal-howto" class="modal-overlay hidden">
+  <div class="modal-box">
+    <button class="modal-close" data-close-modal="modal-howto">✕</button>
+    <h3 class="modal-title">📖 CARA MAIN</h3>
+    <div class="modal-body">
+      <ul class="modal-list">
+        <li><strong>Bilik 1 - Bilik Sahur:</strong> Susun 4 kad mengikut urutan waktu sahur yang betul dengan menekan kad secara berturutan.</li>
+        <li><strong>Bilik 2 - Kelas Sekolah:</strong> Klik untuk buang situasi yang BATAL atau MAKRUH sahaja. Kekalkan situasi yang sah.</li>
+        <li><strong>Bilik 3 - Dapur Petang:</strong> Cari dan klik 3 bahan sunnah berbuka puasa dalam masa yang diberikan sebelum ia tamat.</li>
+        <li><strong>Bilik 4 - Ruang Berbuka:</strong> Jawab 3 soalan untuk dapatkan 3 digit kod, kemudian masukkan kod pada peti besi.</li>
+        <li>Tekan butang 💡 jika perlukan petunjuk. Tekan 🔊 untuk hidup/matikan bunyi.</li>
+        <li>Selesaikan kesemua 4 bilik secepat mungkin untuk menjadi Escape Master!</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

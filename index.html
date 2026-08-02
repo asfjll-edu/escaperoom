@@ -3,121 +3,121 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Misi Escape Room Ramadan Adam</title>
+<title>Escape Room Ramadan Adam</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="arcade-cabinet">
-  <div class="crt-scanlines"></div>
-  <div class="crt-vignette"></div>
+<div class="app-shell">
 
   <!-- ===================== SCREEN: START ===================== -->
   <section id="screen-start" class="game-screen">
+    <div class="start-bg"></div>
     <div class="start-content">
-      <div class="pixel-icon" aria-hidden="true">🔐</div>
-      <h1 class="game-title">MISI ESCAPE<br>ROOM RAMADAN<br>ADAM</h1>
-      <p class="game-blink">TEKAN UNTUK MULA</p>
-      <p class="start-desc">Bantu Adam menyelesaikan 4 bilik teka-teki puasa Ramadan sebelum masa tamat!</p>
+      <div class="start-icon">🕌</div>
+      <h1 class="start-title">ESCAPE ROOM<br>RAMADAN ADAM</h1>
+      <p class="start-desc">Bantu Adam melalui satu hari penuh berpuasa. Selesaikan setiap bilik untuk mengumpul kunci Ramadan!</p>
       <div class="start-buttons">
-        <button id="btn-start" class="retro-btn btn-primary">▶ MULA MISI</button>
-        <button id="btn-howto" class="retro-btn">📖 CARA MAIN</button>
+        <button id="btn-start" class="btn btn-primary">▶ Mula Petualangan</button>
+        <button id="btn-howto" class="btn btn-secondary">📖 Cara Main</button>
       </div>
-      <p class="start-footer">Fiqh Puasa • Pendidikan Islam Tahun 4</p>
     </div>
   </section>
 
   <!-- ===================== SCREEN: GAME ===================== -->
   <section id="screen-game" class="game-screen hidden">
 
-    <!-- HUD -->
-    <div class="hud">
-      <div class="hud-item">
-        <span class="hud-label">BILIK</span>
-        <span id="hud-room" class="hud-value">1 / 4</span>
+    <!-- Header -->
+    <header class="room-header">
+      <div class="room-header-icon" id="room-header-icon">🕌</div>
+      <div class="room-header-text">
+        <span class="room-header-title" id="room-header-title">Bilik Sahur</span>
+        <span class="room-header-sub" id="room-header-sub">Bersedia sebelum fajar</span>
       </div>
-      <div class="hud-item hud-timer-item">
-        <span class="hud-label">MASA</span>
-        <span id="hud-timer" class="hud-value hud-timer">00:00</span>
+      <button id="btn-mute" class="icon-btn" aria-label="Mute">🔊</button>
+    </header>
+
+    <!-- Visual Stage -->
+    <div id="stage" class="stage stage-sahur">
+      <div class="stage-scene" id="stage-scene"></div>
+      <div class="stage-objects" id="stage-objects"></div>
+      <div class="feedback-float-layer" id="feedback-float-layer"></div>
+      <div id="azan-overlay" class="azan-overlay hidden">
+        <div class="azan-text">🕌 Allahu Akbar...</div>
+        <div class="azan-sub">Waktu Maghrib telah tiba</div>
       </div>
-      <div class="hud-item hud-buttons">
-        <button id="btn-hint" class="icon-btn" aria-label="Hint">💡</button>
-        <button id="btn-mute" class="icon-btn" aria-label="Mute">🔊</button>
+    </div>
+
+    <!-- Dialog / Instruction box -->
+    <div class="dialog-box">
+      <div class="dialog-npc" id="dialog-npc">🎯</div>
+      <div class="dialog-text" id="dialog-text">Memuatkan bilik...</div>
+    </div>
+
+    <!-- HUD status -->
+    <div class="hud-status">
+      <div class="hud-pill">
+        <span class="hud-pill-icon">⭐</span>
+        <span id="hud-score" class="hud-pill-value">0</span>
+      </div>
+      <div class="hud-pill">
+        <span class="hud-pill-icon">🗝️</span>
+        <span id="hud-keys" class="hud-pill-value">0/4</span>
+      </div>
+      <div class="hud-pill" id="hud-lives-pill">
+        <span id="hud-lives" class="hud-lives"></span>
       </div>
     </div>
-
-    <!-- Room progress dots -->
-    <div class="room-dots">
-      <span class="room-dot" data-room="1">🚪1</span>
-      <span class="room-dot" data-room="2">🚪2</span>
-      <span class="room-dot" data-room="3">🚪3</span>
-      <span class="room-dot" data-room="4">🚪4</span>
-    </div>
-
-    <!-- Door lock message banner -->
-    <div class="lock-banner">
-      <span id="lock-message">Kunci pintu terikat dengan urutan sahur yang betul!</span>
-    </div>
-
-    <!-- Room stage area (rooms rendered dynamically) -->
-    <div id="room-stage" class="room-stage bg-sahur">
-      <!-- Room content injected by JS -->
-    </div>
-
-    <!-- Hint box -->
-    <div id="hint-box" class="hint-box hidden"></div>
-
-    <!-- Feedback toast -->
-    <div id="toast" class="toast hidden"></div>
   </section>
 
   <!-- ===================== SCREEN: VICTORY ===================== -->
   <section id="screen-victory" class="game-screen hidden">
+    <div class="victory-bg"></div>
     <div class="victory-content">
-      <div class="victory-icon">🏆</div>
-      <h2 class="victory-title">ADAM BERJAYA<br>BERBUKA PUASA!</h2>
-      <p class="victory-sub">Escape Room Selesai!</p>
+      <div class="victory-stars" id="victory-stars"></div>
+      <div class="victory-trophy">🏆</div>
+      <h2 class="victory-title">TAHNIAH!</h2>
+      <p class="victory-sub">Adam berjaya melalui sehari penuh Ramadan!</p>
 
-      <div class="victory-stats">
-        <div class="victory-stat-row">
-          <span>MASA DIAMBIL</span>
-          <span id="victory-time">00:00</span>
+      <div class="stats-panel">
+        <div class="stats-row">
+          <span>🗝️ Kunci</span>
+          <span id="stat-keys">4/4</span>
         </div>
-        <div class="victory-stat-row">
-          <span>HINT DIGUNAKAN</span>
-          <span id="victory-hints">0</span>
+        <div class="stats-row">
+          <span>⭐ Skor</span>
+          <span id="stat-score">0</span>
         </div>
-        <div class="victory-stat-row victory-stat-rank">
-          <span>PENILAIAN</span>
-          <span id="victory-rank">ESCAPE MASTER</span>
+        <div class="stats-row">
+          <span>❤️ Nyawa</span>
+          <span id="stat-lives">0</span>
         </div>
       </div>
 
-      <div class="victory-buttons">
-        <button id="btn-replay" class="retro-btn btn-primary">🔄 MAIN SEMULA</button>
-      </div>
+      <div class="badge-row" id="badge-row"></div>
+
+      <button id="btn-replay" class="btn btn-primary">🔄 Main Semula</button>
     </div>
   </section>
 
 </div>
 
-<!-- ===================== MODALS ===================== -->
-
+<!-- ===================== MODAL: HOW TO PLAY ===================== -->
 <div id="modal-howto" class="modal-overlay hidden">
   <div class="modal-box">
     <button class="modal-close" data-close-modal="modal-howto">✕</button>
-    <h3 class="modal-title">📖 CARA MAIN</h3>
+    <h3 class="modal-title">📖 Cara Main</h3>
     <div class="modal-body">
       <ul class="modal-list">
-        <li><strong>Bilik 1 - Bilik Sahur:</strong> Susun 4 kad mengikut urutan waktu sahur yang betul dengan menekan kad secara berturutan.</li>
-        <li><strong>Bilik 2 - Kelas Sekolah:</strong> Klik untuk buang situasi yang BATAL atau MAKRUH sahaja. Kekalkan situasi yang sah.</li>
-        <li><strong>Bilik 3 - Dapur Petang:</strong> Cari dan klik 3 bahan sunnah berbuka puasa dalam masa yang diberikan sebelum ia tamat.</li>
-        <li><strong>Bilik 4 - Ruang Berbuka:</strong> Jawab 3 soalan untuk dapatkan 3 digit kod, kemudian masukkan kod pada peti besi.</li>
-        <li>Tekan butang 💡 jika perlukan petunjuk. Tekan 🔊 untuk hidup/matikan bunyi.</li>
-        <li>Selesaikan kesemua 4 bilik secepat mungkin untuk menjadi Escape Master!</li>
+        <li><strong>Bilik Sahur:</strong> Seret (drag) makanan yang betul ke Meja Sahur.</li>
+        <li><strong>Bilik Sekolah:</strong> Seret setiap situasi ke kotak yang betul: Tidak Batal, Berhati-hati, atau Batal Puasa.</li>
+        <li><strong>Bilik Petang:</strong> Tekan objek yang betul semasa ia bergerak melintasi skrin, kemudian seret bahan sunnah ke bakul berbuka.</li>
+        <li><strong>Bilik Berbuka:</strong> Seret kad adab berbuka ke garis masa mengikut urutan yang betul.</li>
+        <li><strong>Bilik Akhir:</strong> Padankan nilai murni dengan amalannya.</li>
+        <li>Jawapan salah akan mengurangkan ❤️ Nyawa. Jawapan betul menambah ⭐ Skor.</li>
       </ul>
     </div>
   </div>
